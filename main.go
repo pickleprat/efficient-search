@@ -2,15 +2,22 @@ package main
 
 import (
 	"math/rand" 
-	"fmt" 
+	"time" 
+	"log" 
 ) 
 
 
-type Database [] int ; 
+type Database [] int; 
 
-func (db *Database) FillWithRandom(minimum, maximum int) {
-	for i := 0; i < len(*db); i++ {
-		(*db)[i] = minimum + rand.Intn(maximum - minimum)  
+type Searcher interface {
+	Search( num int ) int 
+} 
+
+func (db *Database) Fill() {
+	for i, _ := range *db {
+		j := rand.Intn(i + 1); 
+		(*db)[j] = i; 
+		(*db)[i] = j; 
 	} 
 } 
 
@@ -54,6 +61,7 @@ func (htree *HashTree) Insert(number, index int) {
 
 	if root == nil {
 		root = newNode; 
+		htree.Data[hashIndex] = root; 
 		return 
 	} 
 
@@ -100,9 +108,9 @@ func (htree *HashTree) Search(number int) int {
 			return currNode.Index;  
 
 		} else if number > currNode.Value {
-			currNode = currNode.Right; 
+			currNode = currNode.Left; 
 		} else {
-			currNode = currNode.Left;  
+			currNode = currNode.Right;  
 		} 
 	} 
 
@@ -113,19 +121,45 @@ func (htree *HashTree) Search(number int) int {
 	} 
 } 
 
+type LinearSearch struct {
+	Db *Database 
+} 
+
+func (ls *LinearSearch) Search(number int) int {
+	for idx, num := range (*ls.Db) {
+		if num == number {
+			return idx
+		} 
+	} 
+
+	return -1; 
+} 
+
+func NewLinearSearcher( db * Database)  * LinearSearch {
+	return &LinearSearch {
+		Db : db, 
+	} 
+} 
+
 
 func main() {
-	var size int = 100;  
-	db := NewDB(size); 
-	db.FillWithRandom(0, 100); 
+	for _, dbLen := range [] int {1000, 10000, 100000, 1000000} {
+		db := NewDB(dbLen); 
+		db.Fill(); 
 
-	htree := NewHashTree(size / 10); 
-	htree.InsertDB(db); 
+		ls := NewLinearSearcher(&db); 
+		htree := NewHashTree(dbLen / 10); 
 
-	searchNumber := 9; 
-	hashIndex := htree.Hash(searchNumber); 
-	node := htree.Data[hashIndex];  
-	fmt.Printf("Hash Index: %+v\n", *node); 
+		for i := 0; i < 100 ; i++ {
+			startTime := time.Now(); 
+			htree.Search(rand.Intn(dbLen)); 
+			elapsedHtree := time.Since(startTime); 
 
+			startTime = time.Now(); 
+			ls.Search(rand.Intn(dbLen)); 
+			elapsedLinearSearch := time.Since(startTime) 
 
+			log.Printf("LS: %+v 	HT: %+v", elapsedLinearSearch, elapsedHtree); 
+		} 
+	} 
 } 
