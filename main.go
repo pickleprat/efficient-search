@@ -59,6 +59,7 @@ func (htree *HashTree) Insert(number, index int) {
         Right: nil,
         Index: index,
     }
+
     if root == nil {
         htree.Data[hashIndex] = newNode
         return
